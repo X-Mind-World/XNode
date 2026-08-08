@@ -5,6 +5,7 @@
     <source media="(prefers-color-scheme: light)" srcset="./assets/prominD.webp">
     <img src="./assets/prominD.webp" alt="ProminD Logo" width="250">
   </picture>
+
 </p>
 
 [🇮🇷 فارسی](README-FA.md)
@@ -72,6 +73,8 @@ Each project is an opportunity to define a real problem, explore different solut
 
 Released under the **MIT License**.
 
+**XminD**
+
 <p align="left">
 
   <picture>
@@ -80,5 +83,5 @@ Released under the **MIT License**.
     <img src="./assets/XminD_logo.webp" alt="XminD Logo" width="250">
   </picture>
 </p>
-**XminD**
+
 
