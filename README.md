@@ -14,6 +14,8 @@
   </picture>
 </p>
 
+[🇮🇷 فارسی](README-FA.md)
+
 # 🌐 XNode
 
 ### Open-Source IoT Projects by XminD
