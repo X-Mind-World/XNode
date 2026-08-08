@@ -111,15 +111,9 @@ docker compose up -d
 * **InfluxDB** — Time-Series Database
 * **Grafana** — Visualization
 
-### Firmware
 
-Firmware در مسیر زیر قرار دارد:
 
-```text
-firmware/XNode_Aero/
-```
-
-پیکربندی Wi-Fi و MQTT را در فایل Configuration انجام دهید و سپس Firmware را روی ESP32 فلش کنید.
+پیکربندی Wi-Fi و MQTT را در فایل Configuration انجام دهید.
 
 ---
 
