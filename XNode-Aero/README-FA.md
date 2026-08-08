@@ -15,38 +15,22 @@
 
 ## 🏗 ساختار
 
-```text
-┌──────────────┐
-│    Sensors   │
-│ DHT11/BH1750 │
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐
-│    ESP32     │
-│  XNode-Aero  │
-└──────┬───────┘
-       │ MQTT
-       ▼
-┌──────────────┐
-│     EMQX     │
-│ MQTT Broker  │
-└──────┬───────┘
-       ▼
-┌──────────────┐
-│   Node-RED   │
-│ Flow / Logic │
-└──────┬───────┘
-       ▼
-┌──────────────┐
-│   InfluxDB   │
-│ Time-Series  │
-└──────┬───────┘
-       ▼
-┌──────────────┐
-│   Grafana    │
-│ Visualization│
-└──────────────┘
+```mermaid
+flowchart TB
+    A["Sensors<br/> DHT11 / BH1750 / DS18b20"]
+    B["ESP32<br/> XNode-Aero"]
+    C["EMQX<br/> MQTT Broker"]
+    D["Node-RED<br/> Flow / Logic"]
+    E[("InfluxDB<br/> Time-Series Database")]
+    F["Grafana<br/> Visualization"]
+    A --> B
+    B -->|"Telemetry"| C
+    C --> D
+    D --> E
+    E --> F
+    D -->|"Control Commands"| C
+    C -->|"MQTT"| B
+    %% mermaid-flow:pos A=153,90 B=153,200 C=153,310 D=153,420 E=153,530 F=153,640
 ```
 
 ## ✨ چه مواردی را بررسی می‌کنیم
