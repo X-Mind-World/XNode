@@ -114,15 +114,8 @@ Main backend services:
 * **InfluxDB** — Time-Series Database
 * **Grafana** — Visualization
 
-### Firmware
 
-The firmware is located at:
-
-```text
-firmware/XNode_Aero/
-```
-
-Configure your Wi-Fi and MQTT settings, then flash the firmware to your ESP32.
+Configure your Wi-Fi and MQTT settings.
 
 ---
 
