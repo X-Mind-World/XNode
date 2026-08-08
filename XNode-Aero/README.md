@@ -19,12 +19,12 @@ The goal is to bring different IoT concepts together into a **real, working syst
 
 ```mermaid
 flowchart TB
-    A["Sensors<br/>DHT11 / BH1750"]
-    B["ESP32<br/>XNode-Aero"]
-    C["EMQX<br/>MQTT Broker"]
-    D["Node-RED<br/>Flow / Logic"]
-    E[("InfluxDB<br/>Time-Series Database")]
-    F["Grafana<br/>Visualization"]
+    A["Sensors<br/> DHT11 / BH1750 / DS18b20"]
+    B["ESP32<br/> XNode-Aero"]
+    C["EMQX<br/> MQTT Broker"]
+    D["Node-RED<br/> Flow / Logic"]
+    E[("InfluxDB<br/> Time-Series Database")]
+    F["Grafana<br/> Visualization"]
     A --> B
     B -->|"Telemetry"| C
     C --> D
