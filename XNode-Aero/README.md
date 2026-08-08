@@ -17,40 +17,24 @@ The goal is to bring different IoT concepts together into a **real, working syst
 
 ## 🏗 Architecture
 
-```text
-┌──────────────┐
-│    Sensors   │
-│ DHT11/BH1750 │
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐
-│    ESP32     │
-│  XNode-Aero  │
-└──────┬───────┘
-       │ MQTT
-       ▼
-┌──────────────┐
-│     EMQX     │
-│ MQTT Broker  │
-└──────┬───────┘
-       ▼
-┌──────────────┐
-│   Node-RED   │
-│ Flow / Logic │
-└──────┬───────┘
-       ▼
-┌──────────────┐
-│   InfluxDB   │
-│ Time-Series  │
-└──────┬───────┘
-       ▼
-┌──────────────┐
-│   Grafana    │
-│ Visualization│
-└──────────────┘
-```
+```mermaid
+flowchart TD
+    A["Sensors<br/>DHT11 / BH1750"]
+    B["ESP32<br/>XNode-Aero"]
+    C["EMQX<br/>MQTT Broker"]
+    D["Node-RED<br/>Flow / Logic"]
+    E["InfluxDB<br/>Time-Series Database"]
+    F["Grafana<br/>Visualization"]
 
+    A --> B
+    B -->|Telemetry| C
+    C --> D
+    D --> E
+    E --> F
+
+    D -->|Control Commands| C
+    C -->|MQTT| B
+```
 ## ✨ What We Explore
 
 The project will gradually cover topics including:
