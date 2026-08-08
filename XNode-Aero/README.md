@@ -1,3 +1,13 @@
+<p align="left">
+
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="../assets/prominD_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="../assets/prominD.webp">
+    <img src="./assets/prominD.webp" alt="ProminD Logo" width="250">
+  </picture>
+
+</p>
+
 # 🌤 XNode-Aero
 [🇮🇷 فارسی](README-FA.md)
 ### Open-Source ESP32-Based Environmental Monitoring Node
@@ -149,3 +159,14 @@ The goal is not only to publish the final code, but also to document the **proce
 Released under the **MIT License**.
 
 **XminD — Build. Learn. Share.**
+
+
+<p align="left">
+
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="../assets/XminD_logo_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="../assets/XminD_logo.webp">
+    <img src="./assets/XminD_logo.webp" alt="XminD Logo" width="250">
+  </picture>
+
+</p>
