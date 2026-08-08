@@ -126,7 +126,7 @@ docker compose up -d
 
 ---
 
-## 🗺️ Roadmap
+## 🗺️ نقشه راه
 
 * [ ] Initial ESP32 node
 * [ ] Sensor telemetry
