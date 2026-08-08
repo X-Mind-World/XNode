@@ -76,6 +76,8 @@ XNode برای اضافه شدن پروژه‌های بیشتر طراحی شد�
 ## 📄 License
 
 Released under the **MIT License**.
+**XminD**
+
 <p align="left">
 
   <picture>
@@ -84,4 +86,5 @@ Released under the **MIT License**.
     <img src="./assets/XminD_logo.webp" alt="XminD Logo" width="250">
   </picture>
 </p>
-**XminD**
+
+
