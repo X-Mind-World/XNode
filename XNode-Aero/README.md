@@ -42,6 +42,10 @@ flowchart TB
     E --> F
     D -->|"Control Commands"| C
     C -->|"MQTT"| B
+    style C stroke:#066f20
+    style D stroke:#b70606
+    style E stroke:#04387c
+    style F stroke:#be9604
     %% mermaid-flow:pos A=153,90 B=153,200 C=153,310 D=153,420 E=153,530 F=153,640
 ```
 ## ✨ What We Explore
