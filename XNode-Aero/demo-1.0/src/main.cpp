@@ -51,14 +51,9 @@ void loop()
 
         if (data.isValid)
         {
-            static char buffer[100];
-            Serial.print("Temperature: ");
-            Serial.print(data.temperature);
-            Serial.println(" °C");
-
-            Serial.print("Humidity: ");
-            Serial.print(data.humidity);
-            Serial.println(" %");
+            char buffer[128];
+            snprintf(buffer, sizeof(buffer), "Temperature: %.2f °C\tHumidity: %.2f %%\n", data.temperature, data.humidity);
+            Serial.print(buffer);
         }
         else
         {
