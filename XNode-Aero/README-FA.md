@@ -93,17 +93,18 @@ flowchart TB
 ## 📡 MQTT Topics
 
 ```text
-xmind/xnode-aero/telemetry
-xmind/xnode-aero/status
-xmind/xnode-aero/cmd/led
+xmind/xnode/xnode-aero-01/telemetry
+xmind/xnode/xnode-aero-01/status
+xmind/xnode/xnode-aero-01/command
+xmind/xnode/xnode-aero-01/error
 ```
 
 نمونه Telemetry:
 
 ```json
 {
-  "temp": 24.5,
-  "hum": 60,
+  "temperature": 24.5,
+  "humidity": 60,
   "lux": 320
 }
 ```
@@ -123,12 +124,6 @@ XNode-Aero یک پروژه **در حال توسعه** است.
 ## 🐳 شروع سریع
 
 ### Backend
-
-```bash
-git clone https://github.com/X-Mind-for-World/XNode-Aero.git
-cd XNode-Aero/docker
-docker compose up -d
-```
 
 سرویس‌های اصلی:
 
