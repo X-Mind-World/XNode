@@ -82,7 +82,7 @@ flowchart TB
 | ------------ | -------------- | ----------------- |
 | SSD1306 OLED | I²C            | GPIO 21 / GPIO 22 |
 | BH1750       | I²C            | GPIO 21 / GPIO 22 |
-| DHT11        | Digital        | GPIO 4            |
+| DHT11        | Digital        | GPIO 5            |
 | Page Button  | Digital Input  | GPIO 12           |
 | Status LED   | Digital Output | GPIO 2            |
 
