@@ -24,23 +24,37 @@
 #include <Arduino.h>
 #include "SensorManager.h"
 #include "WiFiManager.h"
+#include "MQTTManager.h"
+
 
 constexpr uint8_t DHT_PIN = 5;
+constexpr uint8_t DHT_TYPE = DHT11;
+constexpr uint8_t LED_PIN = 2;
 
-SensorManager sensors(DHT_PIN);
+const char* dhtName =
+    (DHT_TYPE == DHT11) ? "DHT11" :
+    (DHT_TYPE == DHT22) ? "DHT22" :
+                          "Unknown";
+
+SensorManager sensors(DHT_PIN, DHT_TYPE);
 WiFiManager wifi;
+MQTTManager mqtt;
 
 void setup()
 {
     Serial.begin(115200);
+    pinMode(LED_PIN, OUTPUT);
+    digitalWrite(LED_PIN, LOW);
+
     sensors.begin();
     wifi.begin();
+    mqtt.begin();
 }
 
 void loop()
 {
-    // Manage Network Connection:
     wifi.update();
+    mqtt.loop();
 
     static bool lastWiFiState = false;
 
@@ -62,7 +76,23 @@ void loop()
         }
     }
 
-    // Read Sensor Data:
+MQTTCommand command = mqtt.readCommand();
+
+if (command.valid)
+{
+    switch (command.type)
+    {
+    case CommandType::SetLed:
+        Serial.print("Received SetLed command. Value: ");
+        Serial.println(command.value);
+        digitalWrite(LED_PIN, command.value);
+        break;
+
+    default:
+        break;
+    }
+}
+
     static unsigned long lastRead = 0;
 
     if (millis() - lastRead >= 5000)
@@ -79,7 +109,9 @@ void loop()
         }
         else
         {
-            Serial.println("Failed to read DHT11.");
+            Serial.printf("Failed to read %s.\n", dhtName);
         }
+        mqtt.publishSensorData(data);
     }
 }
+
