@@ -2,6 +2,8 @@
 
 #include <Arduino.h>
 
+/************************************/
+
 class WiFiManager
 {
 public:
@@ -9,4 +11,4 @@ public:
     void update();
     bool isConnected();
     IPAddress getLocalIP();
-} ; 
+};
