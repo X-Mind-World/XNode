@@ -94,17 +94,18 @@ An important part of the project is documenting **real development experiences**
 ## 📡 MQTT Topics
 
 ```text
-xmind/xnode-aero/telemetry
-xmind/xnode-aero/status
-xmind/xnode-aero/cmd/led
+xmind/xnode/xnode-aero-01/telemetry
+xmind/xnode/xnode-aero-01/status
+xmind/xnode/xnode-aero-01/command
+xmind/xnode/xnode-aero-01/error
 ```
 
 Example telemetry payload:
 
 ```json
 {
-  "temp": 24.5,
-  "hum": 60,
+  "temperature": 24.5,
+  "humidity": 60,
   "lux": 320
 }
 ```
@@ -124,14 +125,6 @@ Features and architectural decisions may change as the project develops, and the
 ## 🐳 Quick Start
 
 ### Backend
-
-Clone the main **XNode** repository:
-
-```bash
-git clone https://github.com/X-Mind-for-World/XNode.git
-cd XNode/XNode-Aero/docker
-docker compose up -d
-```
 
 Main backend services:
 
