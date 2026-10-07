@@ -11,6 +11,8 @@
 
 namespace Secrets
 {
-    inline constexpr char WIFI_SSID[] = "YOUR_WIFI_SSID_HERE";
-    inline constexpr char WIFI_PASS[] = "YOUR_WIFI_PASSWORD_HERE";
+    inline constexpr char WIFI_SSID[] = "YOUR_WIFI_SSID";
+    inline constexpr char WIFI_PASS[] = "YOUR_WIFI_PASSWORD";
+    inline constexpr char MQTT_USER[] = "YOUR_MQTT_USER";
+    inline constexpr char MQTT_PASS[] = "YOUR_MQTT_PASSWORD";
 }
