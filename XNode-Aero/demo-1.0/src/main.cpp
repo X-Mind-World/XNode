@@ -16,7 +16,7 @@
  *              until the project reaches its final form.
  *
  ** Author    : XminD Team (education.xmindworld@gmail.com)
- * Date       : 2026-09
+ * Date       : 2026-11
  *
  ** XminD Official Channels: https://linkshub.xmindworld.ir
  ***************************************************************/
@@ -25,40 +25,29 @@
 #include "SensorManager.h"
 #include "WiFiManager.h"
 #include "MQTTManager.h"
-
+/**********/
+#include "TimeManager.h"
+/**********/
 
 constexpr uint8_t DHT_PIN = 5;
 constexpr uint8_t DHT_TYPE = DHT11;
-constexpr uint8_t LED_PIN = 2;
 
-const char* dhtName =
-    (DHT_TYPE == DHT11) ? "DHT11" :
-    (DHT_TYPE == DHT22) ? "DHT22" :
-                          "Unknown";
+const char *dhtName =
+    (DHT_TYPE == DHT11) ? "DHT11" : (DHT_TYPE == DHT22) ? "DHT22"
+                                                        : "Unknown";
 
 SensorManager sensors(DHT_PIN, DHT_TYPE);
 WiFiManager wifi;
 MQTTManager mqtt;
+TimeManager timeManager;
 
-void setup()
+void checkConnectionStatus()
 {
-    Serial.begin(115200);
-    pinMode(LED_PIN, OUTPUT);
-    digitalWrite(LED_PIN, LOW);
-
-    sensors.begin();
-    wifi.begin();
-    mqtt.begin();
-}
-
-void loop()
-{
-    wifi.update();
-    mqtt.loop();
-
     static bool lastWiFiState = false;
+    static bool lastMqttState = false;
 
     bool currentWiFiState = wifi.isConnected();
+    bool currentMqttState = mqtt.isConnected();
 
     if (currentWiFiState != lastWiFiState)
     {
@@ -66,7 +55,7 @@ void loop()
 
         if (currentWiFiState)
         {
-            Serial.println("WiFi is Connected");
+            Serial.println("WiFi is Connected ✅");
             Serial.print("IP: ");
             Serial.println(wifi.getLocalIP());
         }
@@ -76,22 +65,71 @@ void loop()
         }
     }
 
-MQTTCommand command = mqtt.readCommand();
-
-if (command.valid)
-{
-    switch (command.type)
+    if (currentMqttState != lastMqttState)
     {
-    case CommandType::SetLed:
-        Serial.print("Received SetLed command. Value: ");
-        Serial.println(command.value);
-        digitalWrite(LED_PIN, command.value);
-        break;
+        lastMqttState = currentMqttState;
 
-    default:
-        break;
+        if (currentMqttState)
+        {
+            Serial.println("Connected to MQTT broker. ✅");
+        }
+        else
+        {
+            Serial.println("Attempting to connect to MQTT broker...");
+        }
     }
 }
+
+void setup()
+{
+    Serial.begin(115200);
+
+    sensors.begin();
+    wifi.begin();
+    mqtt.begin();
+}
+
+void loop()
+{
+    wifi.update();
+
+/*****************/
+
+static bool timeSyncStarted = false;
+if (wifi.isConnected() && !timeSyncStarted)
+{
+
+    timeSyncStarted = timeManager.begin();
+
+    if(timeSyncStarted){
+        Serial.println("NTP time synchronization started.");
+    }
+}
+
+static bool lastTimeSyncState = false;
+bool currentTimeSyncState = timeManager.isSynced();
+
+if (currentTimeSyncState != lastTimeSyncState)
+{
+    lastTimeSyncState = currentTimeSyncState;
+
+    if (currentTimeSyncState)
+    {
+        Serial.printf(
+            "System time synchronized. Unix timestamp: %lld\n",
+            static_cast<long long>(timeManager.getUnixTimestamp()));
+    }
+    else
+    {
+        Serial.println("System time is not synchronized.");
+    }
+}
+    
+/*****************/
+
+    mqtt.loop();
+
+     checkConnectionStatus();
 
     static unsigned long lastRead = 0;
 
@@ -100,6 +138,7 @@ if (command.valid)
         lastRead = millis();
 
         SensorData data = sensors.readData();
+        time_t timestamp = timeManager.getUnixTimestamp();
 
         if (data.isValid)
         {
@@ -111,7 +150,7 @@ if (command.valid)
         {
             Serial.printf("Failed to read %s.\n", dhtName);
         }
-        mqtt.publishSensorData(data);
+        mqtt.publishSensorData(data, timestamp);
     }
 }
 
