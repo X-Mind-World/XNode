@@ -1,3 +1,5 @@
+
+
 #include "MQTTManager.h"
 #include <ArduinoJson.h>
 #include "secrets.h"
@@ -15,6 +17,11 @@ MQTTManager::MQTTManager() //* Make sure to initialize the PubSubClient with the
 void MQTTManager::begin() //* Initialize the MQTT client and set the server and callback function
 {
     _mqttClient.setServer(MQTT_BROKER, MQTT_PORT);
+
+    snprintf(_statusTopic, sizeof(_statusTopic), "%s%s/status", MQTT_TOPIC_PREFIX, XNODE_ID); //? Format the status topic
+    snprintf(_commandTopic, sizeof(_commandTopic), "%s%s/command", MQTT_TOPIC_PREFIX, XNODE_ID);
+    snprintf(_telemetryTopic, sizeof(_telemetryTopic), "%s%s/telemetry", MQTT_TOPIC_PREFIX, XNODE_ID);
+    snprintf(_errorTopic, sizeof(_errorTopic), "%s%s/error", MQTT_TOPIC_PREFIX, XNODE_ID);
 
     _mqttClient.setCallback(
         [this](char *topic, byte *payload, unsigned int length)
@@ -43,16 +50,21 @@ void MQTTManager::loop() //* Handle the MQTT client loop, reconnect if necessary
     }
 
     _mqttClient.loop(); //? Handle the MQTT client loop
+
+    if(!_subscribed){
+        unsigned long now = millis();
+        if(now - _lastSubTry > SUBSCRIBE_RETRY_INTERVAL){
+            _lastSubTry = now;
+            _subscribed = subscribeTopics();
+            publishSubscriptionStatus();
+        }
+    }
 }
 
 /************************************/
 
 bool MQTTManager::connect() //* Connect to the MQTT broker and publish the online status. Subscribe to the command topic if successful.
 {
-    snprintf(_statusTopic, sizeof(_statusTopic), "%s%s/status", MQTT_TOPIC_PREFIX, XNODE_ID); //? Format the status topic
-    snprintf(_commandTopic, sizeof(_commandTopic), "%s%s/command", MQTT_TOPIC_PREFIX, XNODE_ID);
-    snprintf(_telemetryTopic, sizeof(_telemetryTopic), "%s%s/telemetry", MQTT_TOPIC_PREFIX, XNODE_ID);
-    snprintf(_errorTopic, sizeof(_errorTopic), "%s%s/error", MQTT_TOPIC_PREFIX, XNODE_ID);
 
     if (_mqttClient.connect( //? Connect to the MQTT broker with the specified client ID, username, password, and will message.
             XNODE_ID,        // Client ID
@@ -63,29 +75,14 @@ bool MQTTManager::connect() //* Connect to the MQTT broker and publish the onlin
             true,
             "{\"state\":\"offline\",\"reason\":\"unexpected_disconnect\"}"))
     {
-        _mqttClient.publish(
-            _statusTopic,
-            "{\"state\":\"online\"}",
-            true);
-
-        if (!subscribeTopics()){
-            return false;
-        }
+        _subsStatusReported = false; // *Reset the subscription status reported flag
+        _lastSubsReported = false;    // *Reset the last subscription status reported flag
+        _lastSubTry = millis();   
+        _subscribed = subscribeTopics();
+        publishSubscriptionStatus(); // *Publish the online status to the status topic with the retained flag set to true. This will ensure that the last known status is available to new subscribers.
         return true;
     }
     return false;
-}
-
-/************************************/
-
-CommandType MQTTManager::parseCommandType(const String &command) //* Parse the command string and return the corresponding CommandType enum value.
-{
-    if (command == "set_led")
-    {
-        return CommandType::SetLed;
-    }
-
-    return CommandType::Unknown;
 }
 
 /************************************/
@@ -163,43 +160,23 @@ void MQTTManager::callback(char *topic, byte *payload, unsigned int length) //* 
 
 /************************************/
 
-MQTTCommand MQTTManager::readCommand() //* Read the last received command and return it.
+bool MQTTManager::publishSensorData(const SensorData &data, time_t timestamp) //* Publish the sensor data to the telemetry topic. If the data is invalid and new error information is available, publish the error information to the error topic as well.
 {
-    if (!_receivedCommand.valid)
+
+    if (data.isNewError || data.isRecovered)
     {
-        return MQTTCommand{};
+        if (!enqueueErrorEvent(data, timestamp))
+        {
+            Serial.println("Failed to enqueue sensor event.");
+        }
     }
 
-    MQTTCommand command = _receivedCommand;
-
-    _receivedCommand.valid = false;
-
-    return command;
-}
-
-/************************************/
-
-bool MQTTManager::publishSensorData(const SensorData &data) //* Publish the sensor data to the telemetry topic. If the data is invalid and new error information is available, publish the error information to the error topic as well.
-{
-    if(!_mqttClient.connected()){
+    if (!_mqttClient.connected())
+    {
         return false;
     }
-    
-    if (!data.isValid && data.isNewError)
-    {
-        JsonDocument errorDoc; //* Create a JSON document and populate it with the error information.
 
-        errorDoc["error"] = data.error;
-        errorDoc["sensor"] = data.sensor;
-
-        char errorPayload[128];
-
-        serializeJson(errorDoc, errorPayload, sizeof(errorPayload));
-
-        _mqttClient.publish(
-            _errorTopic,
-            errorPayload);
-    }
+    publishPendingErrorEvents();
 
     JsonDocument doc; //* Create a JSON document and populate it with the sensor data.
 
@@ -221,4 +198,77 @@ bool MQTTManager::publishSensorData(const SensorData &data) //* Publish the sens
 bool MQTTManager::isConnected() //* Check if the MQTT client is connected to the broker.
 {
     return _mqttClient.connected();
+}
+
+/***********************************/
+
+bool MQTTManager::enqueueErrorEvent(const SensorData &data, time_t timestamp) //* Enqueue an error event to be sent to the MQTT broker. If the queue is full, the oldest event will be dropped to make room for the new event. Returns true if the event was successfully enqueued, false otherwise.
+{
+ 
+    JsonDocument doc;
+
+    doc["sensor"] = data.sensor;
+    doc["state"] = data.state;
+
+    if (data.isNewError)
+    {
+        doc["error"] = data.error;
+    }
+
+    doc["timestamp"] = static_cast<int64_t>(timestamp);
+
+    char payload[ERROR_PAYLOAD_SIZE];
+
+    size_t length = serializeJson(
+        doc,
+        payload,
+        sizeof(payload));
+
+    if (length == 0 || length >= sizeof(payload))
+    {
+        return false;
+    }
+
+    if (_errorQueueCount == ERROR_QUEUE_SIZE)
+    {
+        _front = (_front + 1) % ERROR_QUEUE_SIZE;
+        --_errorQueueCount;
+        ++_droppedEvents;
+    } 
+
+        PendingErrorEvent &event = _errorQueue[_rear];
+        
+        memcpy(event.payload, payload, length + 1);
+        _rear = (_rear + 1) % ERROR_QUEUE_SIZE;
+
+    ++_errorQueueCount;
+    Serial.printf(
+        "Event queued. Queue size: %u, Dropped: %u\n",
+        static_cast<unsigned>(_errorQueueCount),
+        static_cast<unsigned>(_droppedEvents));
+    return true;
+}
+
+/******************************************/
+
+void MQTTManager::publishPendingErrorEvents() //* Publish all pending error events in the queue to the MQTT broker. If the publish fails, the event will remain in the queue for future attempts. This function is called during the main loop when the MQTT client is connected.
+{
+    while (_mqttClient.connected() && _errorQueueCount > 0)
+    {
+        PendingErrorEvent &event = _errorQueue[_front];
+
+        bool published = _mqttClient.publish(
+            _errorTopic,
+            event.payload,
+            true);
+
+        if (!published)
+        {
+            break;
+        }
+
+    _front = (_front + 1) % ERROR_QUEUE_SIZE;
+
+        --_errorQueueCount;
+    }
 }
