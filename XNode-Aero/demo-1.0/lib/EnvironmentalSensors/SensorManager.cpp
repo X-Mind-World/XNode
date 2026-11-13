@@ -47,21 +47,25 @@ SensorData SensorManager::readData() //* Read the temperature and humidity data 
 
     if (data.isValid)
     {
-        data.sensor = nullptr;
+        data.sensor = getSensorName();
         data.error = nullptr; //?   Clear error message if data is valid.
+        data.isRecovered = _sensorInError;
         data.isNewError = false;
+        data.state = data.isRecovered ? "recovered" : "ok";
 
-        _errorReported = false;
+        _sensorInError = false;
     }
     else
     {
         data.temperature = 0;
         data.humidity = 0;
         data.sensor = getSensorName();
-        data.error = "Sensor Unavailable";
-        data.isNewError = !_errorReported;
+        data.error = "read_failed";
+        data.state = "error";
+        data.isNewError = !_sensorInError;
+        data.isRecovered = false;
 
-        _errorReported = true;
+        _sensorInError = true;
     }
 
     return data;
