@@ -1,5 +1,3 @@
-
-
 #include "MQTTManager.h"
 #include <ArduinoJson.h>
 #include "secrets.h"
@@ -22,6 +20,7 @@ void MQTTManager::begin() //* Initialize the MQTT client and set the server and 
     snprintf(_commandTopic, sizeof(_commandTopic), "%s%s/command", MQTT_TOPIC_PREFIX, XNODE_ID);
     snprintf(_telemetryTopic, sizeof(_telemetryTopic), "%s%s/telemetry", MQTT_TOPIC_PREFIX, XNODE_ID);
     snprintf(_errorTopic, sizeof(_errorTopic), "%s%s/error", MQTT_TOPIC_PREFIX, XNODE_ID);
+    snprintf(_feedbackTopic, sizeof(_feedbackTopic), "%s%s/feedback", MQTT_TOPIC_PREFIX, XNODE_ID); 
 
     _mqttClient.setCallback(
         [this](char *topic, byte *payload, unsigned int length)
@@ -83,6 +82,35 @@ bool MQTTManager::connect() //* Connect to the MQTT broker and publish the onlin
         return true;
     }
     return false;
+}
+
+/************************************/
+
+void MQTTManager::publishSubscriptionStatus(){ //* Publish the subscription status to the status topic. This function is called after a successful connection to the MQTT broker and after a successful subscription to the command topic.
+    if(_subsStatusReported && _lastSubsReported == _subscribed){
+        return;
+    }
+
+    const char *payload = _subscribed //? Format the payload based on the subscription status. If subscribed, indicate "ok"; otherwise, indicate "pending".
+        ? "{\"state\":\"online\",\"command_subscription\":\"ok\"}"
+         : "{\"state\":\"online\",\"command_subscription\":\"pending\"}";
+
+    if (_mqttClient.publish(_statusTopic, payload, true)){
+        _lastSubsReported = _subscribed;
+        _subsStatusReported = true;
+    }
+}
+
+/************************************/
+
+CommandType MQTTManager::parseCommandType(const String &command) //* Parse the command string and return the corresponding CommandType enum value.
+{
+    if (command == "set_led")
+    {
+        return CommandType::SetLed;
+    }
+
+    return CommandType::Unknown;
 }
 
 /************************************/
@@ -160,9 +188,30 @@ void MQTTManager::callback(char *topic, byte *payload, unsigned int length) //* 
 
 /************************************/
 
+MQTTCommand MQTTManager::readCommand() //* Read the last received command and return it.
+{
+    if (!_receivedCommand.valid)
+    {
+        return MQTTCommand{};
+    }
+
+    MQTTCommand command = _receivedCommand;
+
+    _receivedCommand.valid = false;
+
+    return command;
+}
+
+/************************************/
+
 bool MQTTManager::publishSensorData(const SensorData &data, time_t timestamp) //* Publish the sensor data to the telemetry topic. If the data is invalid and new error information is available, publish the error information to the error topic as well.
 {
 
+
+    /***************************** */
+    /*
+     * Publish using queue
+     */
     if (data.isNewError || data.isRecovered)
     {
         if (!enqueueErrorEvent(data, timestamp))
@@ -170,13 +219,14 @@ bool MQTTManager::publishSensorData(const SensorData &data, time_t timestamp) //
             Serial.println("Failed to enqueue sensor event.");
         }
     }
-
     if (!_mqttClient.connected())
     {
         return false;
     }
 
     publishPendingErrorEvents();
+
+    /**************************** */
 
     JsonDocument doc; //* Create a JSON document and populate it with the sensor data.
 
@@ -195,6 +245,42 @@ bool MQTTManager::publishSensorData(const SensorData &data, time_t timestamp) //
 
 /************************************/
 
+bool MQTTManager::publishCommandFeedback(int value, time_t timestamp) //* Publish feedback for a received command to the feedback topic. The feedback includes the command value and a message indicating the result of the command execution.
+{
+    const char *message = "";
+
+    switch (value)
+    {
+    case 0:
+    {
+        message = "LED Turned Off";
+        break;
+    }
+    case 1:
+    {
+        message = "LED Turned On";
+        break;
+    }
+    }
+    JsonDocument doc; //* Create a JSON document and populate it with the feedback information.
+
+    doc["state"] = "feedback";
+    doc["info"] = "command_approved";
+    doc["message"] = message;
+    doc["value"] = value;
+    doc["timestamp"] = static_cast<int64_t>(timestamp);
+
+    char feedbackPayload[128];
+
+    serializeJson(doc, feedbackPayload, sizeof(feedbackPayload));
+
+    return _mqttClient.publish(
+        _feedbackTopic,
+        feedbackPayload,
+        true);
+}
+/************************************/
+
 bool MQTTManager::isConnected() //* Check if the MQTT client is connected to the broker.
 {
     return _mqttClient.connected();
@@ -204,7 +290,6 @@ bool MQTTManager::isConnected() //* Check if the MQTT client is connected to the
 
 bool MQTTManager::enqueueErrorEvent(const SensorData &data, time_t timestamp) //* Enqueue an error event to be sent to the MQTT broker. If the queue is full, the oldest event will be dropped to make room for the new event. Returns true if the event was successfully enqueued, false otherwise.
 {
- 
     JsonDocument doc;
 
     doc["sensor"] = data.sensor;
@@ -235,7 +320,6 @@ bool MQTTManager::enqueueErrorEvent(const SensorData &data, time_t timestamp) //
         --_errorQueueCount;
         ++_droppedEvents;
     } 
-
         PendingErrorEvent &event = _errorQueue[_rear];
         
         memcpy(event.payload, payload, length + 1);
@@ -266,7 +350,6 @@ void MQTTManager::publishPendingErrorEvents() //* Publish all pending error even
         {
             break;
         }
-
     _front = (_front + 1) % ERROR_QUEUE_SIZE;
 
         --_errorQueueCount;
