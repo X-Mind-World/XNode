@@ -31,6 +31,7 @@
 
 constexpr uint8_t DHT_PIN = 5;
 constexpr uint8_t DHT_TYPE = DHT11;
+constexpr uint8_t LED_PIN = 2;
 
 const char *dhtName =
     (DHT_TYPE == DHT11) ? "DHT11" : (DHT_TYPE == DHT22) ? "DHT22"
@@ -83,6 +84,8 @@ void checkConnectionStatus()
 void setup()
 {
     Serial.begin(115200);
+    pinMode(LED_PIN, OUTPUT);
+    digitalWrite(LED_PIN, LOW);
 
     sensors.begin();
     wifi.begin();
@@ -130,7 +133,26 @@ if (currentTimeSyncState != lastTimeSyncState)
     mqtt.loop();
 
      checkConnectionStatus();
+/*****************/
+     MQTTCommand command = mqtt.readCommand();
 
+    if (command.valid)
+    {
+        switch (command.type)
+        {
+        case CommandType::SetLed:
+            Serial.print("Received SetLed command. Value: ");
+            Serial.println(command.value);
+            digitalWrite(LED_PIN, command.value);
+            mqtt.publishCommandFeedback(command.value, timeManager.getUnixTimestamp());
+            break;
+
+        default:
+            break;
+        }
+    }
+ 
+/*******************/
     static unsigned long lastRead = 0;
 
     if (millis() - lastRead >= 5000)
